@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Created by SharpDevelop.
  * User: Bogdan
  * Date: 22.05.2012
@@ -677,7 +677,126 @@ reftables[12].refindex = new int[] { 2, 06};
 		byte[] intBytes = BitConverter.GetBytes(ivalue);
 		return intBytes;
 		}
+		
+		
+// Different a bit for 64:
+unsafe public struct IMAGE_NT_HEADERS_64
+{
+public int Signature;
+public IMAGE_FILE_HEADER ifh;
+public IMAGE_OPTIONAL_HEADER_64 ioh;
+}
+
+
+// Different for 64:
+unsafe public struct IMAGE_OPTIONAL_HEADER_64
+{
+  public short     Magic;
+  public byte      MajorLinkerVersion;
+  public byte      MinorLinkerVersion;
+  public int       SizeOfCode;
+  public int       SizeOfInitializedData;
+  public int       SizeOfUninitializedData;
+  public int       AddressOfEntryPoint;
+  public int       BaseOfCode;
+  //public int     BaseOfData; - is missing on x64
+  public long      ImageBase;
+  public int       SectionAlignment;
+  public int       FileAlignment;
+  public short     MajorOperatingSystemVersion;
+  public short     MinorOperatingSystemVersion;
+  public short     MajorImageVersion;
+  public short     MinorImageVersion;
+  public short     MajorSubsystemVersion;
+  public short     MinorSubsystemVersion;
+  public int       Win32VersionValue;
+  public int       SizeOfImage;
+  public int       SizeOfHeaders;
+  public int       CheckSum;
+  public ushort    Subsystem;
+  public short     DllCharacteristics;
+  public long      SizeOfStackReserve;
+  public long      SizeOfStackCommit;
+  public long      SizeOfHeapReserve;
+  public long      SizeOfHeapCommit;
+  public int       LoaderFlags;
+  public int       NumberOfRvaAndSizes;
+  public IMAGE_DATA_DIRECTORY ExportDirectory;
+  public IMAGE_DATA_DIRECTORY ImportDirectory;
+  public IMAGE_DATA_DIRECTORY ResourceDirectory;
+  public IMAGE_DATA_DIRECTORY ExceptionDirectory;
+  public IMAGE_DATA_DIRECTORY SecurityDirectory;
+  public IMAGE_DATA_DIRECTORY RelocationDirectory;
+  public IMAGE_DATA_DIRECTORY DebugDirectory;
+  public IMAGE_DATA_DIRECTORY ArchitectureDirectory;
+  public IMAGE_DATA_DIRECTORY Reserved;
+  public IMAGE_DATA_DIRECTORY TLSDirectory;
+  public IMAGE_DATA_DIRECTORY ConfigurationDirectory;
+  public IMAGE_DATA_DIRECTORY BoundImportDirectory;
+  public IMAGE_DATA_DIRECTORY ImportAddressTableDirectory;
+  public IMAGE_DATA_DIRECTORY DelayImportDirectory;
+  public IMAGE_DATA_DIRECTORY MetaDataDirectory;
+}
+
+		public IMAGE_NT_HEADERS_64 inh_64;
 				
+		void CloneX64Members(ref IMAGE_NT_HEADERS_64 source, ref IMAGE_NT_HEADERS destination)
+		{
+		destination.ifh.SizeOfOptionalHeader = source.ifh.SizeOfOptionalHeader;
+		destination.ifh.NumberOfSections = source.ifh.NumberOfSections;
+		destination.ioh.SectionAlignment = source.ioh.SectionAlignment;
+		destination.ioh.FileAlignment = source.ioh.FileAlignment;
+			
+		destination.ioh.ResourceDirectory.RVA = source.ioh.ResourceDirectory.RVA;
+		destination.ioh.ResourceDirectory.Size = source.ioh.ResourceDirectory.Size;
+
+		destination.ioh.ExportDirectory.RVA = source.ioh.ExportDirectory.RVA;
+		destination.ioh.ExportDirectory.Size = source.ioh.ExportDirectory.Size;
+		
+		destination.ioh.ImportDirectory.RVA = source.ioh.ImportDirectory.RVA;
+		destination.ioh.ImportDirectory.Size = source.ioh.ImportDirectory.Size;
+
+		destination.ioh.ResourceDirectory.RVA = source.ioh.ResourceDirectory.RVA;
+		destination.ioh.ResourceDirectory.Size = source.ioh.ResourceDirectory.Size;
+		
+		destination.ioh.ExceptionDirectory.RVA = source.ioh.ExceptionDirectory.RVA;
+		destination.ioh.ExceptionDirectory.Size = source.ioh.ExceptionDirectory.Size;
+		
+		destination.ioh.SecurityDirectory.RVA = source.ioh.SecurityDirectory.RVA;
+		destination.ioh.SecurityDirectory.Size = source.ioh.SecurityDirectory.Size;
+		
+		destination.ioh.RelocationDirectory.RVA = source.ioh.RelocationDirectory.RVA;
+		destination.ioh.RelocationDirectory.Size = source.ioh.RelocationDirectory.Size;
+		
+		destination.ioh.DebugDirectory.RVA = source.ioh.DebugDirectory.RVA;
+		destination.ioh.DebugDirectory.Size = source.ioh.DebugDirectory.Size;
+		
+		destination.ioh.ArchitectureDirectory.RVA = source.ioh.ArchitectureDirectory.RVA;
+		destination.ioh.ArchitectureDirectory.Size = source.ioh.ArchitectureDirectory.Size;
+		
+		destination.ioh.Reserved.RVA = source.ioh.Reserved.RVA;
+		destination.ioh.Reserved.Size = source.ioh.Reserved.Size;
+		
+		destination.ioh.TLSDirectory.RVA = source.ioh.TLSDirectory.RVA;
+		destination.ioh.TLSDirectory.Size = source.ioh.TLSDirectory.Size;
+
+		destination.ioh.ConfigurationDirectory.RVA = source.ioh.ConfigurationDirectory.RVA;
+		destination.ioh.ConfigurationDirectory.Size = source.ioh.ConfigurationDirectory.Size;
+		
+		destination.ioh.BoundImportDirectory.RVA = source.ioh.BoundImportDirectory.RVA;
+		destination.ioh.BoundImportDirectory.Size = source.ioh.BoundImportDirectory.Size;
+
+		destination.ioh.ImportAddressTableDirectory.RVA = source.ioh.ImportAddressTableDirectory.RVA;
+		destination.ioh.ImportAddressTableDirectory.Size = source.ioh.ImportAddressTableDirectory.Size;
+
+		destination.ioh.DelayImportDirectory.RVA = source.ioh.DelayImportDirectory.RVA;
+		destination.ioh.DelayImportDirectory.Size = source.ioh.DelayImportDirectory.Size;
+
+		destination.ioh.MetaDataDirectory.RVA = source.ioh.MetaDataDirectory.RVA;
+		destination.ioh.MetaDataDirectory.Size = source.ioh.MetaDataDirectory.Size;
+
+		}
+		
 		public unsafe bool Intialize(BinaryReader reader)
 		{
 		reader.BaseStream.Position=0;
@@ -704,6 +823,21 @@ reftables[12].refindex = new int[] { 2, 06};
 		}
 		inh = (IMAGE_NT_HEADERS)Marshal.PtrToStructure(pointer, typeof(IMAGE_NT_HEADERS));
 		if (inh.Signature!=0x4550) return false;
+		
+		// x64 change:
+		if (inh.ifh.Machine==(ushort)0x8664)  // AMD64 (K8)
+		{
+		reader.BaseStream.Position=idh.e_lfanew;
+		buffer = reader.ReadBytes(sizeof(IMAGE_NT_HEADERS_64));
+		fixed (byte* p = buffer)
+		{
+		pointer = (IntPtr)p;
+		inh_64 = (IMAGE_NT_HEADERS_64)Marshal.PtrToStructure(pointer, typeof(IMAGE_NT_HEADERS_64));
+		}
+		
+		CloneX64Members(ref inh_64, ref inh);
+		
+		}
 		
 		reader.BaseStream.Position=idh.e_lfanew+4+sizeof(IMAGE_FILE_HEADER)+inh.ifh.SizeOfOptionalHeader;
 		sections=new image_section_header[inh.ifh.NumberOfSections];
